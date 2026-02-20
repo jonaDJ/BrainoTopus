@@ -1,0 +1,525 @@
+@import 'tailwindcss';
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family:
+    Georgia,
+    'Times New Roman',
+    serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --paper: #ececec;
+  --ink: #111827;
+  --line: #d4d4d4;
+  --muted: #6b7280;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  background: linear-gradient(180deg, #f2f2f2 0%, #e8e8e8 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nyt-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+.rain-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.2rem;
+  background: rgb(245 245 245 / 92%);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #f3f4f6;
+  background:
+    radial-gradient(circle at 34% 34%, rgb(209 250 229 / 75%), transparent 32%),
+    linear-gradient(145deg, #0f172a, #111827);
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.brand-sub {
+  margin: 0.1rem 0 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3.2vw, 2.2rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-links a {
+  position: relative;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nav-links a::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.24rem;
+  left: 0;
+  height: 2px;
+  content: '';
+  background: #111827;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+
+.nav-links a:hover::after {
+  transform: scaleX(1);
+}
+
+.page-content {
+  width: min(1120px, 100% - 2rem);
+  margin-inline: auto;
+  padding: 2.3rem 0 4rem;
+}
+
+.hero {
+  display: grid;
+  align-items: center;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.hero-copy {
+  animation: hero-copy-in 680ms ease-out both;
+}
+
+.hero-kicker {
+  display: inline-flex;
+  margin: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #bfc2c7;
+  border-radius: 999px;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.hero-copy h1 {
+  margin: 0.8rem 0 0;
+  font-size: clamp(2rem, 6vw, 3.95rem);
+  line-height: 1.03;
+  font-weight: 800;
+}
+
+.hero-copy p {
+  max-width: 44ch;
+  margin: 1rem 0 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.hero-art {
+  position: relative;
+  height: min(420px, 72vw);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 20% 20%, rgb(56 189 248 / 18%), transparent 34%),
+    radial-gradient(circle at 82% 78%, rgb(250 204 21 / 12%), transparent 30%),
+    linear-gradient(145deg, #020617 0%, #0b1f4d 50%, #1f2937 100%);
+  overflow: hidden;
+  border: 1px solid #27395f;
+  box-shadow:
+    inset 0 0 0 1px rgb(148 163 184 / 10%),
+    0 30px 60px rgb(2 6 23 / 30%);
+}
+
+.hero-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(34px);
+  opacity: 0.7;
+}
+
+.hero-glow--a {
+  top: 10%;
+  left: 10%;
+  width: 9rem;
+  height: 9rem;
+  background: rgb(34 211 238 / 36%);
+  animation: glow-shift 6s ease-in-out infinite;
+}
+
+.hero-glow--b {
+  right: 8%;
+  bottom: 12%;
+  width: 10rem;
+  height: 10rem;
+  background: rgb(250 204 21 / 26%);
+  animation: glow-shift 6s 1.2s ease-in-out infinite;
+}
+
+.hero-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11.5rem;
+  height: 11.5rem;
+  transform: translate(-50%, -50%);
+}
+
+.hero-core-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(125 211 252 / 36%);
+  border-radius: 999px;
+  animation: orbit-pulse 3.6s ease-out infinite;
+}
+
+.hero-core-ring--two {
+  inset: 9%;
+  border-color: rgb(250 204 21 / 36%);
+  animation-delay: 1.2s;
+}
+
+.hero-core-chip {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  inset: 33%;
+  border-radius: 999px;
+  border: 1px solid rgb(229 231 235 / 35%);
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 30% 26%, rgb(250 204 21 / 40%), transparent 38%),
+    linear-gradient(160deg, rgb(6 182 212 / 55%), rgb(15 23 42 / 98%));
+  animation: core-float 2.8s ease-in-out infinite;
+}
+
+.hero-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14rem;
+  height: 14rem;
+  margin: -7rem 0 0 -7rem;
+  border-radius: 999px;
+  border: 1px dashed rgb(148 163 184 / 24%);
+  animation: spin 10s linear infinite;
+}
+
+.hero-orbit--two {
+  width: 17.5rem;
+  height: 17.5rem;
+  margin: -8.75rem 0 0 -8.75rem;
+  animation-duration: 13s;
+  animation-direction: reverse;
+}
+
+.hero-orbit--three {
+  width: 21rem;
+  height: 21rem;
+  margin: -10.5rem 0 0 -10.5rem;
+  animation-duration: 16s;
+}
+
+.hero-orbit--four {
+  width: 24rem;
+  height: 24rem;
+  margin: -12rem 0 0 -12rem;
+  animation-duration: 20s;
+  animation-direction: reverse;
+}
+
+.hero-orbit-card {
+  position: absolute;
+  top: -0.9rem;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.8rem;
+  padding: 0.38rem 0.55rem;
+  border-radius: 0.62rem;
+  border: 1px solid rgb(226 232 240 / 36%);
+  background: linear-gradient(170deg, rgb(15 23 42 / 90%), rgb(8 47 73 / 96%));
+  color: #e5e7eb;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 25px rgb(2 6 23 / 35%);
+}
+
+.games-section {
+  margin-top: 3rem;
+}
+
+.games-section h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.3rem);
+  font-weight: 700;
+  text-align: center;
+}
+
+.game-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.game-card {
+  display: block;
+  min-height: 205px;
+  padding: 1.3rem;
+  border: 1px solid #cfd3d7;
+  border-radius: 1rem;
+  background: #f4f4f4;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.game-card h3 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.game-card--live:hover {
+  transform: translateY(-3px);
+  border-color: #9ca3af;
+  box-shadow: 0 18px 35px rgb(15 23 42 / 12%);
+}
+
+.game-card--disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.card-badge {
+  display: inline-flex;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.55rem;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #f9fafb;
+  background: #111827;
+}
+
+.card-badge--dev {
+  color: #111827;
+  background: #d1d5db;
+}
+
+.game-card p {
+  margin: 0.95rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.site-footer {
+  width: min(1120px, 100% - 2rem);
+  margin: 0 auto;
+  padding: 0.4rem 0 2rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.site-footer p {
+  margin: 0.55rem 0 0;
+}
+
+@keyframes hero-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow-shift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(12px, -8px) scale(1.08);
+  }
+}
+
+@keyframes orbit-pulse {
+  from {
+    opacity: 0.62;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes core-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes spin {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-art {
+    height: min(430px, 90vw);
+  }
+
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .top-nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav-links {
+    gap: 1rem;
+  }
+
+  .hero-core {
+    width: 9rem;
+    height: 9rem;
+  }
+
+  .hero-orbit {
+    width: 11.5rem;
+    height: 11.5rem;
+    margin: -5.75rem 0 0 -5.75rem;
+  }
+
+  .hero-orbit--two {
+    width: 14rem;
+    height: 14rem;
+    margin: -7rem 0 0 -7rem;
+  }
+
+  .hero-orbit--three {
+    width: 16.5rem;
+    height: 16.5rem;
+    margin: -8.25rem 0 0 -8.25rem;
+  }
+
+  .hero-orbit--four {
+    width: 19rem;
+    height: 19rem;
+    margin: -9.5rem 0 0 -9.5rem;
+  }
+
+  .hero-orbit-card {
+    min-width: 4rem;
+    font-size: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
