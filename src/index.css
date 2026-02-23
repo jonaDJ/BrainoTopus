@@ -38,7 +38,7 @@ a {
 .rain-layer {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 30;
   pointer-events: none;
 }
 
@@ -129,6 +129,8 @@ a {
 }
 
 .page-content {
+  position: relative;
+  z-index: 10;
   width: min(1120px, 100% - 2rem);
   margin-inline: auto;
   padding: 2.3rem 0 4rem;
@@ -393,6 +395,8 @@ a {
 }
 
 .site-footer {
+  position: relative;
+  z-index: 10;
   width: min(1120px, 100% - 2rem);
   margin: 0 auto;
   padding: 0.4rem 0 2rem;
