@@ -3,7 +3,15 @@ import "./WORDLEGAME.css";
 
 const BOARD_ROWS = 6;
 const BOARD_COLS = 5;
+const REVEAL_STEP_MS = 450;
 type TileState = "idle" | "correct" | "present" | "absent";
+type KeyState = Exclude<TileState, "idle">;
+type EntryPulse = { row: number; col: number; token: number } | null;
+const KEY_STATE_PRIORITY: Record<KeyState, number> = {
+  absent: 1,
+  present: 2,
+  correct: 3,
+};
 
 const KEYBOARD_ROWS = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -13,6 +21,7 @@ const KEYBOARD_ROWS = [
 
 export function WORDLEGAME() {
   const targetWordRef = useRef("");
+  const shakeTimeoutRef = useRef<number | null>(null);
   const [board, setBoard] = useState<string[][]>(() =>
     Array.from({ length: BOARD_ROWS }, () => Array(BOARD_COLS).fill("")),
   );
@@ -24,11 +33,12 @@ export function WORDLEGAME() {
   const [currentRow, setCurrentRow] = useState(0);
   const [currentCol, setCurrentCol] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [topAlert, setTopAlert] = useState("");
   const [isCheckingGuess, setIsCheckingGuess] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [didWin, setDidWin] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
-  const [usedKeys, setUsedKeys] = useState<Set<string>>(() => new Set());
+  const [keyStates, setKeyStates] = useState<Record<string, KeyState>>({});
+  const [shakeRowIndex, setShakeRowIndex] = useState<number | null>(null);
+  const [entryPulse, setEntryPulse] = useState<EntryPulse>(null);
 
   const evaluateGuess = useCallback((guess: string, target: string) => {
     const result: TileState[] = Array(BOARD_COLS).fill("absent");
@@ -66,6 +76,14 @@ export function WORDLEGAME() {
     return result;
   }, []);
 
+  const wait = useCallback(
+    (ms: number) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, ms);
+      }),
+    [],
+  );
+
   const loadTargetWord = useCallback(async () => {
     const response = await fetch("/api/word");
     if (!response.ok) {
@@ -88,10 +106,11 @@ export function WORDLEGAME() {
     setCurrentRow(0);
     setCurrentCol(0);
     setFeedback("");
+    setTopAlert("");
     setIsGameOver(false);
-    setDidWin(false);
-    setShowEndModal(false);
-    setUsedKeys(new Set());
+    setKeyStates({});
+    setShakeRowIndex(null);
+    setEntryPulse(null);
 
     try {
       await loadTargetWord();
@@ -99,6 +118,22 @@ export function WORDLEGAME() {
       setFeedback("Could not start a new game.");
     }
   }, [loadTargetWord]);
+
+  const triggerRowShake = useCallback((rowIndex: number) => {
+    setShakeRowIndex(null);
+    window.requestAnimationFrame(() => {
+      setShakeRowIndex(rowIndex);
+    });
+
+    if (shakeTimeoutRef.current !== null) {
+      window.clearTimeout(shakeTimeoutRef.current);
+    }
+
+    shakeTimeoutRef.current = window.setTimeout(() => {
+      setShakeRowIndex((current) => (current === rowIndex ? null : current));
+      shakeTimeoutRef.current = null;
+    }, 420);
+  }, []);
 
   const applyKey = useCallback(
     async (key: string) => {
@@ -112,6 +147,8 @@ export function WORDLEGAME() {
         }
 
         setFeedback("");
+        setTopAlert("");
+        setEntryPulse(null);
         const nextCol = currentCol - 1;
         setBoard((prevBoard) =>
           prevBoard.map((row, rowIndex) =>
@@ -126,17 +163,23 @@ export function WORDLEGAME() {
 
       if (key === "ENTER") {
         if (currentCol !== BOARD_COLS) {
-          setFeedback("Not enough letters.");
+          setFeedback("");
+          setTopAlert("Not enough letters.");
+          setEntryPulse(null);
+          triggerRowShake(currentRow);
           return;
         }
 
         const guess = board[currentRow].join("");
         if (targetWordRef.current.length !== BOARD_COLS) {
           setFeedback("Game is still loading.");
+          setTopAlert("");
           return;
         }
         setIsCheckingGuess(true);
         setFeedback("");
+        setTopAlert("");
+        setEntryPulse(null);
 
         try {
           const response = await fetch(
@@ -150,29 +193,45 @@ export function WORDLEGAME() {
 
           const data = (await response.json()) as { isValid?: boolean };
           if (!data.isValid) {
-            setFeedback("Not a real word.");
+            setTopAlert("Not a real word.");
+            setEntryPulse(null);
+            triggerRowShake(currentRow);
             return;
           }
 
           const rowResult = evaluateGuess(guess, targetWordRef.current);
-          setTileStates((prevStates) =>
-            prevStates.map((rowState, rowIndex) =>
-              rowIndex === currentRow ? rowResult : rowState,
-            ),
-          );
-          setUsedKeys((prevKeys) => {
-            const nextKeys = new Set(prevKeys);
-            for (const letter of guess) {
-              nextKeys.add(letter);
+          for (let col = 0; col < BOARD_COLS; col += 1) {
+            setTileStates((prevStates) =>
+              prevStates.map((rowState, rowIndex) =>
+                rowIndex === currentRow
+                  ? rowState.map((cellState, colIndex) =>
+                      colIndex === col ? rowResult[colIndex] : cellState,
+                    )
+                  : rowState,
+              ),
+            );
+            await wait(REVEAL_STEP_MS);
+          }
+
+          setKeyStates((prevStates) => {
+            const nextStates = { ...prevStates };
+            for (let i = 0; i < BOARD_COLS; i += 1) {
+              const letter = guess[i];
+              const nextState = rowResult[i] as KeyState;
+              const currentState = nextStates[letter];
+              if (
+                !currentState ||
+                KEY_STATE_PRIORITY[nextState] > KEY_STATE_PRIORITY[currentState]
+              ) {
+                nextStates[letter] = nextState;
+              }
             }
-            return nextKeys;
+            return nextStates;
           });
 
           const isWinningRow = rowResult.every((state) => state === "correct");
           if (isWinningRow) {
-            setDidWin(true);
             setIsGameOver(true);
-            setShowEndModal(true);
             setFeedback("You solved it.");
             return;
           }
@@ -181,10 +240,8 @@ export function WORDLEGAME() {
             setCurrentRow((prevRow) => prevRow + 1);
             setCurrentCol(0);
           } else {
-            setDidWin(false);
             setIsGameOver(true);
-            setShowEndModal(true);
-            setFeedback("No more tries.");
+            setFeedback(`The word was ${targetWordRef.current}.`);
           }
         } catch {
           setFeedback("Could not validate word.");
@@ -200,6 +257,8 @@ export function WORDLEGAME() {
       }
 
       setFeedback("");
+      setTopAlert("");
+      const entryCol = currentCol;
       setBoard((prevBoard) =>
         prevBoard.map((row, rowIndex) =>
           rowIndex === currentRow
@@ -207,9 +266,14 @@ export function WORDLEGAME() {
             : row,
         ),
       );
+      setEntryPulse((prev) => ({
+        row: currentRow,
+        col: entryCol,
+        token: (prev?.token ?? 0) + 1,
+      }));
       setCurrentCol((prevCol) => prevCol + 1);
     },
-    [board, currentCol, currentRow, evaluateGuess, isCheckingGuess, isGameOver],
+    [board, currentCol, currentRow, evaluateGuess, isCheckingGuess, isGameOver, triggerRowShake, wait],
   );
 
   useEffect(() => {
@@ -230,6 +294,42 @@ export function WORDLEGAME() {
       cancelled = true;
     };
   }, [loadTargetWord]);
+
+  useEffect(() => {
+    return () => {
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!entryPulse) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setEntryPulse(null);
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [entryPulse]);
+
+  useEffect(() => {
+    if (!topAlert) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setTopAlert("");
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [topAlert]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -257,87 +357,96 @@ export function WORDLEGAME() {
 
   return (
     <main className="wordlegame">
-      <section aria-label="Word board" className="word-board">
-        {board.map((row, rowIndex) =>
-          row.map((letter, colIndex) => {
-            const tileState = tileStates[rowIndex][colIndex];
-            const stateClass =
-              tileState === "correct"
-                ? "word-tile--correct"
-                : tileState === "present"
-                  ? "word-tile--present"
-                  : "";
+      <div className="word-board-wrap">
+        {topAlert ? (
+          <p aria-live="assertive" className="word-alert-top" role="alert">
+            {topAlert}
+          </p>
+        ) : null}
 
-            return (
-            <div
-              aria-hidden
-              className={
-                letter
-                  ? `word-tile word-tile--filled ${stateClass} rain-proof`
-                  : "word-tile rain-proof"
-              }
-              key={`${rowIndex}-${colIndex}`}
-            >
-              {letter}
-            </div>
-            );
-          }),
-        )}
-      </section>
+        <section aria-label="Word board" className="word-board">
+          {board.map((row, rowIndex) =>
+            row.map((letter, colIndex) => {
+              const tileState = tileStates[rowIndex][colIndex];
+              const isEntryTile =
+                Boolean(letter) &&
+                tileState === "idle" &&
+                entryPulse?.row === rowIndex &&
+                entryPulse?.col === colIndex;
+              const isShakeTile = rowIndex === shakeRowIndex;
+              const isRevealedTile = tileState !== "idle";
+              const stateClass =
+                tileState === "correct"
+                  ? "word-tile--correct"
+                  : tileState === "present"
+                    ? "word-tile--present"
+                    : tileState === "absent"
+                      ? "word-tile--absent"
+                    : "";
+
+              return (
+              <div
+                aria-hidden
+                className={
+                  letter
+                    ? `word-tile word-tile--filled ${isEntryTile ? "word-tile--entry" : ""} ${isShakeTile ? "word-tile--row-shake" : ""} ${isRevealedTile ? "word-tile--reveal" : ""} ${stateClass} rain-proof`
+                    : `word-tile ${isShakeTile ? "word-tile--row-shake" : ""} rain-proof`
+                }
+                key={`${rowIndex}-${colIndex}`}
+              >
+                {letter}
+              </div>
+              );
+            }),
+          )}
+        </section>
+      </div>
 
       <section aria-label="Keyboard" className="word-keyboard">
         {KEYBOARD_ROWS.map((row, rowIndex) => (
           <div className="key-row" key={rowIndex}>
-            {row.map((key) => (
-              <button
-                className={
-                  `${key === "ENTER" || key === "BACK" ? "key-button key-button--wide" : "key-button"} ${
-                    usedKeys.has(key) ? "key-button--used" : ""
-                  }`
-                }
-                key={key}
-                disabled={isGameOver}
-                onClick={() => void applyKey(key)}
-                type="button"
-              >
-                {key === "BACK" ? "DEL" : key}
-              </button>
-            ))}
+            {row.map((key) => {
+              const keyState = keyStates[key];
+              const keyStateClass =
+                keyState === "correct"
+                  ? "key-button--correct"
+                  : keyState === "present"
+                    ? "key-button--present"
+                    : keyState === "absent"
+                      ? "key-button--absent"
+                      : "";
+
+              return (
+                <button
+                  className={
+                    `${key === "ENTER" || key === "BACK" ? "key-button key-button--wide" : "key-button"} ${keyStateClass}`
+                  }
+                  key={key}
+                  disabled={isGameOver}
+                  onClick={() => void applyKey(key)}
+                  type="button"
+                >
+                  {key === "BACK" ? "DEL" : key}
+                </button>
+              );
+            })}
           </div>
         ))}
       </section>
 
       <p className="word-feedback" role="status">
-        {isCheckingGuess ? "Checking word..." : feedback}
+        {feedback}
       </p>
 
-      {showEndModal ? (
-        <div className="word-modal-backdrop" role="presentation">
-          <section
-            aria-label="Game complete"
-            aria-modal="true"
-            className="word-modal"
-            role="dialog"
+      {isGameOver ? (
+        <div className="word-postgame-actions">
+          <button
+            className="word-action-btn word-action-btn--primary"
+            onClick={() => void resetGame()}
+            type="button"
           >
-            <h2>{didWin ? "You Win" : "Game Over"}</h2>
-            <p>
-              {didWin
-                ? "Great run. Want to play again?"
-                : "No more guesses left. Play again?"}
-            </p>
-            <div className="word-modal-actions">
-              <button className="word-modal-btn word-modal-btn--primary" onClick={() => void resetGame()} type="button">
-                Play Again
-              </button>
-              <button
-                className="word-modal-btn word-modal-btn--ghost"
-                onClick={() => setShowEndModal(false)}
-                type="button"
-              >
-                Close
-              </button>
-            </div>
-          </section>
+            Play Again
+          </button>
         </div>
       ) : null}
     </main>

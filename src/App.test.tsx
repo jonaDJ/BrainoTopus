@@ -15,6 +15,6 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Contact' })).toBeInTheDocument()
 
     expect(screen.getByRole('link', { name: /wordle/i })).toBeVisible()
-    expect(screen.getAllByText(/developing/i)).toHaveLength(2)
+    expect(screen.getAllByText(/developing/i)).toHaveLength(1)
   })
 })

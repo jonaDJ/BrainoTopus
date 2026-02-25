@@ -76,8 +76,8 @@ const server = createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           guess,
-          isValid: true,
-          source: "dictionary-error-allowed",
+          isValid: false,
+          source: "dictionary-error-rejected",
           detail: error instanceof Error ? error.message : "Unknown error",
         }),
       );

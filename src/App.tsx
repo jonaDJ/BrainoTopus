@@ -1,6 +1,7 @@
 import { RainLayer } from "./effects/rain/RainLayer";
 import { Navbar } from "./components/navbar/Navbar";
 import { WORDLEGAME } from "./pages/WORDLEGAME/WORDLEGAME";
+import { CONNECTION } from "./pages/CONNECTION/CONNECTION";
 
 type GameCard = {
   title: string;
@@ -18,8 +19,9 @@ const gameCards: GameCard[] = [
   },
   {
     title: "Connections",
-    description: "In development.",
-    status: "developing",
+    description: "Group related words.",
+    status: "available",
+    href: "/games/connection",
   },
   {
     title: "Mini Crossword",
@@ -30,6 +32,7 @@ const gameCards: GameCard[] = [
 
 function App() {
   const isWordlePage = window.location.pathname === "/games/wordle";
+  const isConnectionPage = window.location.pathname === "/games/connection";
 
   return (
     <div className="nyt-shell">
@@ -38,6 +41,8 @@ function App() {
 
       {isWordlePage ? (
         <WORDLEGAME />
+      ) : isConnectionPage ? (
+        <CONNECTION />
       ) : (
         <main className="page-content">
           <section className="hero">

@@ -16,6 +16,30 @@
   gap: 0.42rem;
 }
 
+.word-board-wrap {
+  position: relative;
+}
+
+.word-alert-top {
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  top: 0.24rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.3rem 0.62rem;
+  border-radius: 0.4rem;
+  background: rgb(15 23 42 / 92%);
+  color: #f8fafc;
+  font-family: "Trebuchet MS", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 30%);
+}
+
 .word-tile {
   display: grid;
   place-items: center;
@@ -43,6 +67,18 @@
     0 10px 20px rgb(15 23 42 / 14%);
 }
 
+.word-tile--entry {
+  animation: word-tile-pop 170ms cubic-bezier(0.2, 0.9, 0.24, 1.15);
+}
+
+.word-tile--row-shake {
+  animation: word-row-shake 420ms ease-in-out;
+}
+
+.word-tile--reveal {
+  animation: word-tile-reveal 450ms ease;
+}
+
 .word-tile--correct {
   border-color: #3f8f4c;
   background:
@@ -57,6 +93,12 @@
     linear-gradient(145deg, rgb(242 203 97 / 78%), rgb(199 158 46 / 86%)),
     linear-gradient(180deg, rgb(232 190 74 / 90%), rgb(181 142 46 / 94%));
   color: #fffdf7;
+}
+
+.word-tile--absent {
+  border-color: #8b94a3;
+  background: #9ca3af;
+  color: #f8fafc;
 }
 
 .word-keyboard {
@@ -98,9 +140,19 @@
   font-size: 0.78rem;
 }
 
-.key-button--used {
+.key-button--absent {
   background: #9ca3af;
   color: #f8fafc;
+}
+
+.key-button--present {
+  background: #b58e2e;
+  color: #fffdf7;
+}
+
+.key-button--correct {
+  background: #3f8f4c;
+  color: #f8fff9;
 }
 
 .word-feedback {
@@ -112,46 +164,11 @@
   color: #374151;
 }
 
-.word-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  background: rgb(15 23 42 / 35%);
-  padding: 1rem;
+.word-postgame-actions {
+  margin-top: 0.18rem;
 }
 
-.word-modal {
-  width: min(430px, 100%);
-  border: 1px solid #d1d5db;
-  border-radius: 0.9rem;
-  background: #f8fafc;
-  box-shadow: 0 24px 48px rgb(15 23 42 / 28%);
-  padding: 1.05rem 1rem 0.95rem;
-}
-
-.word-modal h2 {
-  margin: 0;
-  font-family: "Trebuchet MS", sans-serif;
-  font-size: 1.35rem;
-  color: #0f172a;
-}
-
-.word-modal p {
-  margin: 0.55rem 0 0;
-  font-family: "Trebuchet MS", sans-serif;
-  color: #334155;
-}
-
-.word-modal-actions {
-  margin-top: 0.9rem;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
-.word-modal-btn {
+.word-action-btn {
   border: 0;
   border-radius: 0.45rem;
   padding: 0.58rem 0.8rem;
@@ -160,14 +177,80 @@
   cursor: pointer;
 }
 
-.word-modal-btn--primary {
+.word-action-btn--primary {
   background: #0f172a;
   color: #f8fafc;
 }
 
-.word-modal-btn--ghost {
-  background: #d1d5db;
-  color: #111827;
+@keyframes word-tile-pop {
+  0% {
+    transform: translateY(5px) scale(0.78);
+    opacity: 0.86;
+  }
+
+  55% {
+    transform: translateY(-1px) scale(1.07);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes word-row-shake {
+  0% {
+    transform: translateX(0);
+  }
+
+  18% {
+    transform: translateX(-7px);
+  }
+
+  36% {
+    transform: translateX(7px);
+  }
+
+  54% {
+    transform: translateX(-6px);
+  }
+
+  72% {
+    transform: translateX(6px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes word-tile-reveal {
+  0% {
+    transform: rotateX(0);
+  }
+
+  48% {
+    transform: rotateX(-88deg);
+  }
+
+  100% {
+    transform: rotateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word-tile--entry {
+    animation: none;
+  }
+
+  .word-tile--row-shake {
+    animation: none;
+  }
+
+  .word-tile--reveal {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
