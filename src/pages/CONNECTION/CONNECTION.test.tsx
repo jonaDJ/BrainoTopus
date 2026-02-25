@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONNECTION } from "./CONNECTION";
 
 const GROUPS: Array<{ title: string; labels: string[] }> = [
@@ -7,6 +7,35 @@ const GROUPS: Array<{ title: string; labels: string[] }> = [
   { title: "ANIMALS", labels: ["DOG", "CAT", "LION", "WOLF"] },
   { title: "COLORS", labels: ["RED", "BLUE", "GREEN", "BLACK"] },
   { title: "INSTRUMENTS", labels: ["PIANO", "DRUM", "FLUTE", "VIOLIN"] },
+];
+
+const CONNECTIONS_FIXTURE = [
+  {
+    id: 99999,
+    date: "2099-01-01",
+    answers: [
+      {
+        level: 0,
+        group: "FRUITS",
+        members: ["APPLE", "BANANA", "GRAPE", "MANGO"],
+      },
+      {
+        level: 1,
+        group: "ANIMALS",
+        members: ["DOG", "CAT", "LION", "WOLF"],
+      },
+      {
+        level: 2,
+        group: "COLORS",
+        members: ["RED", "BLUE", "GREEN", "BLACK"],
+      },
+      {
+        level: 3,
+        group: "INSTRUMENTS",
+        members: ["PIANO", "DRUM", "FLUTE", "VIOLIN"],
+      },
+    ],
+  },
 ];
 
 function selectTiles(labels: string[]) {
@@ -24,10 +53,24 @@ function getUsedMistakeDots(container: HTMLElement) {
 }
 
 describe("CONNECTION", () => {
+  beforeEach(() => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => CONNECTIONS_FIXTURE,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
   it(
     "shows solved end state when all groups are found",
     async () => {
       const { container } = render(<CONNECTION />);
+      await screen.findByRole("button", { name: "APPLE" });
 
       for (const group of GROUPS) {
         selectTiles(group.labels);
@@ -61,6 +104,7 @@ describe("CONNECTION", () => {
     "shows unsolved end state and reveals groups after mistakes run out",
     async () => {
       const { container } = render(<CONNECTION />);
+      await screen.findByRole("button", { name: "APPLE" });
 
       const mixedGuess = ["APPLE", "DOG", "RED", "PIANO"];
       selectTiles(mixedGuess);

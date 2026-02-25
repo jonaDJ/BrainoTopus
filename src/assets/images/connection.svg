@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Connections puzzle board preview">
+  <rect width="240" height="240" fill="#0f172a" />
+
+  <g transform="translate(0 14)">
+    <g opacity="0.45" stroke="#6f8fbd" stroke-width="1">
+      <line x1="16" y1="24" x2="16" y2="34" />
+      <line x1="44" y1="18" x2="44" y2="26" />
+      <line x1="71" y1="20" x2="71" y2="30" />
+      <line x1="99" y1="14" x2="99" y2="24" />
+      <line x1="126" y1="22" x2="126" y2="32" />
+      <line x1="154" y1="19" x2="154" y2="28" />
+      <line x1="182" y1="12" x2="182" y2="22" />
+      <line x1="210" y1="20" x2="210" y2="29" />
+    </g>
+
+    <rect x="8" y="8" width="224" height="38" rx="8" fill="#1f6037" />
+    <text x="120" y="22" text-anchor="middle" fill="#f8fafc" font-family="Trebuchet MS, Arial, sans-serif" font-size="8.5" font-weight="700" letter-spacing="0.6">CLASSIC COLLECTION ITEMS</text>
+    <text x="120" y="34" text-anchor="middle" fill="#f8fafc" font-family="Trebuchet MS, Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.5">STAMP, RECORD, COIN, COMIC</text>
+
+    <rect x="8" y="50" width="224" height="38" rx="8" fill="#2c447e" />
+    <text x="120" y="64" text-anchor="middle" fill="#f8fafc" font-family="Trebuchet MS, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="0.7">ASSIGNMENT</text>
+    <text x="120" y="76" text-anchor="middle" fill="#f8fafc" font-family="Trebuchet MS, Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.5">JOB, STATION, POST, POSITION</text>
+
+    <g fill="#263344" stroke="#3f5065" stroke-width="1">
+      <rect x="8" y="96" width="53" height="52" rx="7" />
+      <rect x="65" y="96" width="53" height="52" rx="7" />
+      <rect x="122" y="96" width="53" height="52" rx="7" />
+      <rect x="179" y="96" width="53" height="52" rx="7" />
+      <rect x="8" y="152" width="53" height="52" rx="7" />
+      <rect x="65" y="152" width="53" height="52" rx="7" />
+      <rect x="122" y="152" width="53" height="52" rx="7" />
+      <rect x="179" y="152" width="53" height="52" rx="7" />
+    </g>
+
+    <g fill="#e7edf8" font-family="Trebuchet MS, Arial, sans-serif" font-size="8.5" font-weight="700" text-anchor="middle" letter-spacing="0.6">
+      <text x="34.5" y="125">OFF</text>
+      <text x="91.5" y="125">FUNNY</text>
+      <text x="148.5" y="125">STORE</text>
+      <text x="205.5" y="125">MAIL</text>
+      <text x="34.5" y="181">CURIOUS</text>
+      <text x="91.5" y="181">REACTION</text>
+      <text x="148.5" y="181">LETTER</text>
+      <text x="205.5" y="181">WEIRD</text>
+    </g>
+  </g>
+
+  <rect x="8" y="198" width="224" height="36" rx="9" fill="#020617" fill-opacity="0.9" />
+</svg>

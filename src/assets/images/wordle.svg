@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Wordle puzzle board preview">
+  <rect width="240" height="240" fill="#0f172a" />
+
+  <g opacity="0.45" stroke="#6f8fbd" stroke-width="1">
+    <line x1="14" y1="20" x2="14" y2="30" />
+    <line x1="40" y1="14" x2="40" y2="24" />
+    <line x1="66" y1="18" x2="66" y2="28" />
+    <line x1="92" y1="12" x2="92" y2="22" />
+    <line x1="118" y1="20" x2="118" y2="30" />
+    <line x1="144" y1="15" x2="144" y2="25" />
+    <line x1="170" y1="19" x2="170" y2="29" />
+    <line x1="196" y1="13" x2="196" y2="23" />
+    <line x1="222" y1="19" x2="222" y2="29" />
+  </g>
+
+  <g transform="translate(30 11)">
+    <g fill="#949baa" stroke="#bac0ca" stroke-width="1">
+      <rect x="0" y="0" width="32" height="32" />
+      <rect x="37" y="0" width="32" height="32" />
+      <rect x="74" y="0" width="32" height="32" />
+      <rect x="111" y="0" width="32" height="32" />
+      <rect x="148" y="0" width="32" height="32" />
+
+      <rect x="0" y="37" width="32" height="32" />
+      <rect x="37" y="37" width="32" height="32" />
+      <rect x="74" y="37" width="32" height="32" />
+      <rect x="111" y="37" width="32" height="32" />
+      <rect x="148" y="37" width="32" height="32" />
+
+      <rect x="0" y="74" width="32" height="32" />
+      <rect x="37" y="74" width="32" height="32" />
+      <rect x="74" y="74" width="32" height="32" />
+      <rect x="111" y="74" width="32" height="32" />
+      <rect x="148" y="74" width="32" height="32" />
+
+      <rect x="0" y="111" width="32" height="32" />
+      <rect x="37" y="111" width="32" height="32" />
+      <rect x="74" y="111" width="32" height="32" />
+      <rect x="111" y="111" width="32" height="32" />
+      <rect x="148" y="111" width="32" height="32" />
+    </g>
+
+    <g fill="#c9a73d" stroke="#dac483" stroke-width="1">
+      <rect x="0" y="0" width="32" height="32" />
+      <rect x="37" y="37" width="32" height="32" />
+      <rect x="74" y="37" width="32" height="32" />
+      <rect x="37" y="74" width="32" height="32" />
+      <rect x="74" y="74" width="32" height="32" />
+    </g>
+
+    <g fill="#67b56f" stroke="#86c98d" stroke-width="1">
+      <rect x="111" y="37" width="32" height="32" />
+      <rect x="37" y="111" width="32" height="32" />
+      <rect x="74" y="111" width="32" height="32" />
+      <rect x="111" y="111" width="32" height="32" />
+      <rect x="148" y="111" width="32" height="32" />
+    </g>
+
+    <g fill="#1f2937" stroke="#334155" stroke-width="1">
+      <rect x="0" y="148" width="32" height="32" />
+      <rect x="37" y="148" width="32" height="32" />
+      <rect x="74" y="148" width="32" height="32" />
+      <rect x="111" y="148" width="32" height="32" />
+      <rect x="148" y="148" width="32" height="32" />
+
+      <rect x="0" y="185" width="32" height="32" />
+      <rect x="37" y="185" width="32" height="32" />
+      <rect x="74" y="185" width="32" height="32" />
+      <rect x="111" y="185" width="32" height="32" />
+      <rect x="148" y="185" width="32" height="32" />
+    </g>
+
+    <g fill="#f8fafc" font-family="Trebuchet MS, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle">
+      <text x="16" y="22.5">L</text>
+      <text x="53" y="22.5">I</text>
+      <text x="90" y="22.5">G</text>
+      <text x="127" y="22.5">H</text>
+      <text x="164" y="22.5">T</text>
+
+      <text x="16" y="59.5">B</text>
+      <text x="53" y="59.5">L</text>
+      <text x="90" y="59.5">O</text>
+      <text x="127" y="59.5">A</text>
+      <text x="164" y="59.5">T</text>
+
+      <text x="16" y="96.5">F</text>
+      <text x="53" y="96.5">R</text>
+      <text x="90" y="96.5">A</text>
+      <text x="127" y="96.5">M</text>
+      <text x="164" y="96.5">E</text>
+
+      <text x="16" y="133.5">M</text>
+      <text x="53" y="133.5">O</text>
+      <text x="90" y="133.5">R</text>
+      <text x="127" y="133.5">A</text>
+      <text x="164" y="133.5">L</text>
+    </g>
+  </g>
+
+  <rect x="8" y="198" width="224" height="36" rx="9" fill="#020617" fill-opacity="0.9" />
+</svg>

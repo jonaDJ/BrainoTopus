@@ -21,8 +21,14 @@ It borrows the daily puzzle format and clean layout pattern, then applies Braino
 
 ## Scripts
 
-- `npm run dev` - start local dev server
+- `npm run dev` - run frontend + backend together for local development
+- `npm run dev:frontend` - run Vite frontend only
+- `npm run dev:backend` - run backend API only
 - `npm run build` - production build
 - `npm run lint` - run ESLint
 - `npm run test` - run unit tests
 - `npm run test:e2e` - run Playwright tests
+
+## Contributing
+
+Contributions are open to everyone, including beginner-level contributions.

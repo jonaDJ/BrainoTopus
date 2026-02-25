@@ -2,30 +2,31 @@ import { RainLayer } from "./effects/rain/RainLayer";
 import { Navbar } from "./components/navbar/Navbar";
 import { WORDLEGAME } from "./pages/WORDLEGAME/WORDLEGAME";
 import { CONNECTION } from "./pages/CONNECTION/CONNECTION";
+import wordleCardImage from "./assets/images/wordle.svg";
+import connectionsCardImage from "./assets/images/connection.svg";
 
 type GameCard = {
   title: string;
-  description: string;
   status: "available" | "developing";
   href?: string;
+  imageSrc?: string;
 };
 
 const gameCards: GameCard[] = [
   {
     title: "Wordle",
-    description: "Daily five-letter puzzle.",
     status: "available",
     href: "/games/wordle",
+    imageSrc: wordleCardImage,
   },
   {
     title: "Connections",
-    description: "Group related words.",
     status: "available",
     href: "/games/connection",
+    imageSrc: connectionsCardImage,
   },
   {
     title: "Mini Crossword",
-    description: "In development.",
     status: "developing",
   },
 ];
@@ -63,12 +64,23 @@ function App() {
               {gameCards.map((game) =>
                 game.status === "available" ? (
                   <a
+                    aria-label={`Open ${game.title}`}
                     className="game-card game-card--live rain-proof"
                     href={game.href}
                     key={game.title}
                   >
-                    <h3>{game.title}</h3>
-                    <p>{game.description}</p>
+                    {game.imageSrc ? (
+                      <img
+                        alt=""
+                        aria-hidden="true"
+                        className="game-card-media"
+                        src={game.imageSrc}
+                      />
+                    ) : null}
+                    <div aria-hidden="true" className="game-card-scrim" />
+                    <div className="game-card-content">
+                      <h3>{game.title}</h3>
+                    </div>
                   </a>
                 ) : (
                   <article
@@ -76,13 +88,17 @@ function App() {
                     className="game-card game-card--disabled rain-proof"
                     key={game.title}
                   >
-                    <div className="card-head">
+                    <div className="game-card-content">
+                      <div className="card-head">
+                        <span className="card-badge card-badge--dev">
+                          Developing
+                        </span>
+                      </div>
                       <h3>{game.title}</h3>
-                      <span className="card-badge card-badge--dev">
-                        Developing
-                      </span>
+                      <div className="game-card-meta">
+                        <span>Coming Soon</span>
+                      </div>
                     </div>
-                    <p>{game.description}</p>
                   </article>
                 ),
               )}

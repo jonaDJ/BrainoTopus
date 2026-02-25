@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import "./CONNECTION.css";
 
-type GroupId = "fruits" | "animals" | "colors" | "instruments";
+type GroupId = string;
 
 type Tile = {
   id: string;
@@ -10,24 +10,21 @@ type Tile = {
   groupId: GroupId;
 };
 
-const DUMMY_TILES: Tile[] = [
-  { id: "apple", label: "APPLE", groupId: "fruits" },
-  { id: "banana", label: "BANANA", groupId: "fruits" },
-  { id: "grape", label: "GRAPE", groupId: "fruits" },
-  { id: "mango", label: "MANGO", groupId: "fruits" },
-  { id: "dog", label: "DOG", groupId: "animals" },
-  { id: "cat", label: "CAT", groupId: "animals" },
-  { id: "lion", label: "LION", groupId: "animals" },
-  { id: "wolf", label: "WOLF", groupId: "animals" },
-  { id: "red", label: "RED", groupId: "colors" },
-  { id: "blue", label: "BLUE", groupId: "colors" },
-  { id: "green", label: "GREEN", groupId: "colors" },
-  { id: "black", label: "BLACK", groupId: "colors" },
-  { id: "piano", label: "PIANO", groupId: "instruments" },
-  { id: "drum", label: "DRUM", groupId: "instruments" },
-  { id: "flute", label: "FLUTE", groupId: "instruments" },
-  { id: "violin", label: "VIOLIN", groupId: "instruments" },
-];
+type ApiAnswer = {
+  level: number;
+  group: string;
+  members: string[];
+};
+
+type ApiPuzzle = {
+  id: number;
+  date: string;
+  answers: ApiAnswer[];
+};
+
+const CONNECTIONS_SOURCE_URL =
+  "https://raw.githubusercontent.com/Eyefyre/NYT-Connections-Answers/main/connections.json";
+const LOADING_TILE_COUNT = 16;
 
 type SolvedGroup = {
   groupId: GroupId;
@@ -35,14 +32,81 @@ type SolvedGroup = {
   noPop?: boolean;
 };
 
-const GROUP_ORDER: GroupId[] = ["fruits", "animals", "colors", "instruments"];
+function chooseRandomPuzzleById(puzzles: ApiPuzzle[], excludeId?: number | null) {
+  if (puzzles.length === 0) {
+    throw new Error("Connections API returned no puzzles.");
+  }
 
-const GROUP_META: Record<GroupId, { title: string }> = {
-  fruits: { title: "FRUITS" },
-  animals: { title: "ANIMALS" },
-  colors: { title: "COLORS" },
-  instruments: { title: "INSTRUMENTS" },
-};
+  const ids = puzzles.map((puzzle) => puzzle.id);
+  const minId = Math.min(...ids);
+  const maxId = Math.max(...ids);
+  const availableIds = new Set(ids);
+
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const randomId = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+    if (!availableIds.has(randomId)) {
+      continue;
+    }
+    if (excludeId !== undefined && excludeId !== null && randomId === excludeId) {
+      continue;
+    }
+    const selected = puzzles.find((puzzle) => puzzle.id === randomId);
+    if (selected) {
+      return selected;
+    }
+  }
+
+  const filtered =
+    excludeId === undefined || excludeId === null
+      ? puzzles
+      : puzzles.filter((puzzle) => puzzle.id !== excludeId);
+  const pool = filtered.length > 0 ? filtered : puzzles;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function buildTilesFromPuzzle(puzzle: ApiPuzzle) {
+  const orderedAnswers = [...puzzle.answers].sort((a, b) => {
+    if (a.level === b.level) {
+      return 0;
+    }
+    if (a.level === -1) {
+      return 1;
+    }
+    if (b.level === -1) {
+      return -1;
+    }
+    return a.level - b.level;
+  });
+
+  const groupOrder: GroupId[] = [];
+  const groupMeta: Record<GroupId, { title: string }> = {};
+  const tiles: Tile[] = [];
+
+  orderedAnswers.forEach((answer, groupIndex) => {
+    const groupId = `group-${groupIndex}-${answer.level}`;
+    groupOrder.push(groupId);
+    groupMeta[groupId] = { title: answer.group };
+
+    answer.members.forEach((member, memberIndex) => {
+      const normalized = member.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      tiles.push({
+        id: `${groupId}-${memberIndex}-${normalized}`,
+        label: member,
+        groupId,
+      });
+    });
+  });
+
+  return { tiles, groupOrder, groupMeta };
+}
+
+function solvedRowTierClass(groupId: GroupId, groupOrder: GroupId[]) {
+  const idx = groupOrder.indexOf(groupId);
+  if (idx < 0) {
+    return "connection-solved-row--tier-0";
+  }
+  return `connection-solved-row--tier-${Math.min(idx, 3)}`;
+}
 
 function shuffleTiles(items: Tile[]) {
   const next = [...items];
@@ -69,7 +133,15 @@ export function CONNECTION() {
   const gridRef = useRef<HTMLElement | null>(null);
   const preReflowRectsRef = useRef<Record<string, DOMRect>>({});
   const shouldAnimateReflowRef = useRef(false);
-  const [tiles, setTiles] = useState<Tile[]>(() => shuffleTiles(DUMMY_TILES));
+  const [allPuzzles, setAllPuzzles] = useState<ApiPuzzle[]>([]);
+  const [activePuzzleId, setActivePuzzleId] = useState<number | null>(null);
+  const [groupOrder, setGroupOrder] = useState<GroupId[]>([]);
+  const [groupMeta, setGroupMeta] = useState<Record<GroupId, { title: string }>>(
+    {},
+  );
+  const [tiles, setTiles] = useState<Tile[]>([]);
+  const [isLoadingPuzzle, setIsLoadingPuzzle] = useState(true);
+  const [puzzleLoadError, setPuzzleLoadError] = useState<string | null>(null);
   const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
   const [solvedGroups, setSolvedGroups] = useState<SolvedGroup[]>([]);
   const [waveDelayByTile, setWaveDelayByTile] = useState<
@@ -84,8 +156,62 @@ export function CONNECTION() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAutoRevealing, setIsAutoRevealing] = useState(false);
   const isGameOver = mistakesRemaining === 0;
-  const isGameWon = !isGameOver && solvedGroups.length === GROUP_ORDER.length;
+  const isGameWon =
+    !isGameOver && groupOrder.length > 0 && solvedGroups.length === groupOrder.length;
   const isGameComplete = isGameOver || isGameWon;
+
+  const resetRound = useCallback((tilesForRound: Tile[]) => {
+    setTiles(shuffleTiles(tilesForRound));
+    setSelectedTiles([]);
+    setSolvedGroups([]);
+    setWaveDelayByTile({});
+    setGatherByTile({});
+    setShakeTileIds([]);
+    setMistakesRemaining(4);
+    setIsShuffling(false);
+    setIsSubmitting(false);
+    setIsAutoRevealing(false);
+    shouldAnimateReflowRef.current = false;
+    preReflowRectsRef.current = {};
+  }, []);
+
+  const applyPuzzle = useCallback(
+    (puzzle: ApiPuzzle) => {
+      const { tiles: fetchedTiles, groupOrder, groupMeta } =
+        buildTilesFromPuzzle(puzzle);
+      setActivePuzzleId(puzzle.id);
+      setGroupOrder(groupOrder);
+      setGroupMeta(groupMeta);
+      resetRound(fetchedTiles);
+    },
+    [resetRound],
+  );
+
+  const loadPuzzle = useCallback(async () => {
+    setIsLoadingPuzzle(true);
+    setPuzzleLoadError(null);
+
+    try {
+      const response = await fetch(CONNECTIONS_SOURCE_URL);
+      if (!response.ok) {
+        throw new Error(`Connections API request failed with ${response.status}`);
+      }
+
+      const allPuzzles = (await response.json()) as ApiPuzzle[];
+      setAllPuzzles(allPuzzles);
+      const selectedPuzzle = chooseRandomPuzzleById(allPuzzles);
+      applyPuzzle(selectedPuzzle);
+    } catch (error) {
+      console.error(error);
+      setPuzzleLoadError("Unable to load Connections puzzle.");
+    } finally {
+      setIsLoadingPuzzle(false);
+    }
+  }, [applyPuzzle]);
+
+  useEffect(() => {
+    void loadPuzzle();
+  }, [loadPuzzle]);
 
   useEffect(() => {
     if (!shouldAnimateReflowRef.current) {
@@ -135,7 +261,7 @@ export function CONNECTION() {
   }, [tiles]);
 
   const handleShuffle = () => {
-    if (isShuffling || isSubmitting || isGameComplete) {
+    if (isLoadingPuzzle || puzzleLoadError || isShuffling || isSubmitting || isGameComplete) {
       return;
     }
 
@@ -149,7 +275,7 @@ export function CONNECTION() {
   };
 
   const handleTileClick = (tileId: string) => {
-    if (isSubmitting || isShuffling || isGameComplete) {
+    if (isLoadingPuzzle || puzzleLoadError || isSubmitting || isShuffling || isGameComplete) {
       return;
     }
 
@@ -167,25 +293,24 @@ export function CONNECTION() {
   };
 
   const handleDeselectAll = () => {
-    if (isSubmitting || isGameComplete) {
+    if (isLoadingPuzzle || puzzleLoadError || isSubmitting || isGameComplete) {
       return;
     }
     setSelectedTiles([]);
   };
 
   const handleRetry = () => {
-    setTiles(shuffleTiles(DUMMY_TILES));
-    setSelectedTiles([]);
-    setSolvedGroups([]);
-    setWaveDelayByTile({});
-    setGatherByTile({});
-    setShakeTileIds([]);
-    setMistakesRemaining(4);
-    setIsShuffling(false);
-    setIsSubmitting(false);
-    setIsAutoRevealing(false);
-    shouldAnimateReflowRef.current = false;
-    preReflowRectsRef.current = {};
+    if (puzzleLoadError) {
+      void loadPuzzle();
+      return;
+    }
+
+    if (allPuzzles.length === 0) {
+      return;
+    }
+
+    const nextPuzzle = chooseRandomPuzzleById(allPuzzles, activePuzzleId);
+    applyPuzzle(nextPuzzle);
   };
 
   const animateSolveSelection = async (
@@ -304,7 +429,7 @@ export function CONNECTION() {
     setIsAutoRevealing(true);
     let workingTiles = [...currentTiles];
 
-    for (const groupId of GROUP_ORDER) {
+    for (const groupId of groupOrder) {
       const ids = workingTiles
         .filter((tile) => tile.groupId === groupId)
         .map((tile) => tile.id);
@@ -328,7 +453,13 @@ export function CONNECTION() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (selectedTiles.length !== 4 || isSubmitting || isGameComplete) {
+    if (
+      isLoadingPuzzle ||
+      puzzleLoadError ||
+      selectedTiles.length !== 4 ||
+      isSubmitting ||
+      isGameComplete
+    ) {
       return;
     }
 
@@ -369,16 +500,37 @@ export function CONNECTION() {
     <main className="connection-page">
       <section className="connection-panel">
         <p className="connection-instruction">Create four groups of four!</p>
+        {isLoadingPuzzle ? (
+          <p aria-live="polite" className="connection-instruction" role="status">
+            Loading puzzle...
+          </p>
+        ) : null}
+        {puzzleLoadError ? (
+          <div aria-live="polite" className="connection-finish connection-finish--lost">
+            <h2 className="connection-finish-title">Unable to load puzzle</h2>
+            <p className="connection-finish-text">{puzzleLoadError}</p>
+            <button
+              aria-label="Retry loading puzzle"
+              className="connection-action-btn connection-finish-btn"
+              onClick={() => {
+                void loadPuzzle();
+              }}
+              type="button"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : null}
 
         {solvedGroups.length > 0 ? (
           <section aria-label="Solved groups" className="connection-solved">
             {solvedGroups.map((group, groupIndex) => (
               <div
-                className={`connection-solved-row connection-solved-row--${group.groupId} ${group.noPop ? "connection-solved-row--no-pop" : ""}`}
+                className={`connection-solved-row ${solvedRowTierClass(group.groupId, groupOrder)} ${group.noPop ? "connection-solved-row--no-pop" : ""}`}
                 key={`${group.groupId}-${groupIndex}`}
               >
                 <p className="connection-solved-title">
-                  {GROUP_META[group.groupId].title}
+                  {groupMeta[group.groupId]?.title ?? group.groupId}
                 </p>
                 <p className="connection-solved-words">
                   {group.tiles.map((tile) => tile.label).join(", ")}
@@ -390,38 +542,46 @@ export function CONNECTION() {
 
         <section
           aria-label="Connections board"
-          className="connection-grid"
+          className={`connection-grid ${isLoadingPuzzle ? "connection-grid--loading" : ""}`}
           ref={gridRef}
         >
-          {tiles.map((tile) => {
-            const isSelected = selectedTiles.includes(tile.id);
-            const showSelectedState = isSelected && !isAutoRevealing;
-            const isLocked = selectedTiles.length >= 4 && !isSelected;
-            const waveDelay = waveDelayByTile[tile.id];
-            const gather = gatherByTile[tile.id];
+          {isLoadingPuzzle
+            ? Array.from({ length: LOADING_TILE_COUNT }).map((_, index) => (
+                <div
+                  aria-hidden="true"
+                  className="connection-tile connection-tile--skeleton"
+                  key={`skeleton-tile-${index}`}
+                />
+              ))
+            : tiles.map((tile) => {
+                const isSelected = selectedTiles.includes(tile.id);
+                const showSelectedState = isSelected && !isAutoRevealing;
+                const isLocked = selectedTiles.length >= 4 && !isSelected;
+                const waveDelay = waveDelayByTile[tile.id];
+                const gather = gatherByTile[tile.id];
 
-            return (
-              <button
-                aria-pressed={isSelected}
-                className={`connection-tile rain-proof ${showSelectedState ? "connection-tile--selected" : ""} ${waveDelay !== undefined ? "connection-tile--wave" : ""} ${shakeTileIds.includes(tile.id) ? "connection-tile--shake" : ""} ${gather ? "connection-tile--gather" : ""}`}
-                data-tile-id={tile.id}
-                disabled={isLocked || isSubmitting || isGameComplete}
-                key={tile.id}
-                onClick={() => handleTileClick(tile.id)}
-                style={
-                  {
-                    "--wave-delay": `${waveDelay ?? 0}ms`,
-                    "--gather-delay": `${gather?.delay ?? 0}ms`,
-                    "--gather-x": `${gather?.x ?? 0}px`,
-                    "--gather-y": `${gather?.y ?? 0}px`,
-                  } as CSSProperties
-                }
-                type="button"
-              >
-                {tile.label}
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={`connection-tile rain-proof ${showSelectedState ? "connection-tile--selected" : ""} ${waveDelay !== undefined ? "connection-tile--wave" : ""} ${shakeTileIds.includes(tile.id) ? "connection-tile--shake" : ""} ${gather ? "connection-tile--gather" : ""}`}
+                    data-tile-id={tile.id}
+                    disabled={isLocked || isSubmitting || isGameComplete}
+                    key={tile.id}
+                    onClick={() => handleTileClick(tile.id)}
+                    style={
+                      {
+                        "--wave-delay": `${waveDelay ?? 0}ms`,
+                        "--gather-delay": `${gather?.delay ?? 0}ms`,
+                        "--gather-x": `${gather?.x ?? 0}px`,
+                        "--gather-y": `${gather?.y ?? 0}px`,
+                      } as CSSProperties
+                    }
+                    type="button"
+                  >
+                    {tile.label}
+                  </button>
+                );
+              })}
         </section>
 
         <div className="mistakes-wrap" role="status">
@@ -462,7 +622,13 @@ export function CONNECTION() {
           <div className="connection-actions">
             <button
               className="connection-action-btn"
-              disabled={isShuffling || isSubmitting || isGameComplete}
+              disabled={
+                isLoadingPuzzle ||
+                Boolean(puzzleLoadError) ||
+                isShuffling ||
+                isSubmitting ||
+                isGameComplete
+              }
               onClick={handleShuffle}
               type="button"
             >
@@ -470,7 +636,13 @@ export function CONNECTION() {
             </button>
             <button
               className="connection-action-btn"
-              disabled={selectedTiles.length === 0 || isSubmitting || isGameComplete}
+              disabled={
+                isLoadingPuzzle ||
+                Boolean(puzzleLoadError) ||
+                selectedTiles.length === 0 ||
+                isSubmitting ||
+                isGameComplete
+              }
               onClick={handleDeselectAll}
               type="button"
             >
@@ -480,7 +652,11 @@ export function CONNECTION() {
               <button
                 className="connection-action-btn connection-action-btn--submit"
                 disabled={
-                  selectedTiles.length !== 4 || isSubmitting || isGameComplete
+                  isLoadingPuzzle ||
+                  Boolean(puzzleLoadError) ||
+                  selectedTiles.length !== 4 ||
+                  isSubmitting ||
+                  isGameComplete
                 }
                 type="submit"
               >

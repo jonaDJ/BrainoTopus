@@ -35,6 +35,10 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.connection-grid--loading {
+  pointer-events: none;
+}
+
 .connection-solved {
   display: grid;
   gap: 0.6rem;
@@ -78,19 +82,19 @@
   color: #ffffff;
 }
 
-.connection-solved-row--fruits {
+.connection-solved-row--tier-0 {
   background: #8a6f00;
 }
 
-.connection-solved-row--animals {
+.connection-solved-row--tier-1 {
   background: #163a72;
 }
 
-.connection-solved-row--colors {
+.connection-solved-row--tier-2 {
   background: #14532d;
 }
 
-.connection-solved-row--instruments {
+.connection-solved-row--tier-3 {
   background: #6b1d4f;
 }
 
@@ -129,6 +133,36 @@
 .connection-tile--gather {
   animation: connection-gather 580ms ease-in-out var(--gather-delay, 0ms)
     forwards;
+}
+
+.connection-tile--skeleton {
+  position: relative;
+  overflow: hidden;
+  border-color: #dbe1e9;
+  background: linear-gradient(
+    108deg,
+    #eef2f7 0%,
+    #e2e8f0 28%,
+    #f8fafc 44%,
+    #e2e8f0 62%,
+    #eef2f7 100%
+  );
+  background-size: 220% 100%;
+  animation: connection-tile-shimmer 1.25s linear infinite;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  cursor: default;
+}
+
+.connection-grid--loading .connection-tile--skeleton:nth-child(4n + 2) {
+  animation-delay: 90ms;
+}
+
+.connection-grid--loading .connection-tile--skeleton:nth-child(4n + 3) {
+  animation-delay: 170ms;
+}
+
+.connection-grid--loading .connection-tile--skeleton:nth-child(4n + 4) {
+  animation-delay: 250ms;
 }
 
 .mistakes-wrap {
@@ -170,6 +204,9 @@
 .connection-finish {
   margin-top: 1.25rem;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -178,6 +215,47 @@
   border-top: 3px solid #111827;
   border-bottom: 1px solid #d1d5db;
   background: #ffffff;
+  box-shadow: 0 10px 26px -20px rgba(17, 24, 39, 0.4);
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  animation: connection-finish-enter 620ms cubic-bezier(0.2, 0.75, 0.25, 1)
+    forwards;
+}
+
+.connection-finish::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    118deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 48%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-120%);
+  animation: connection-finish-sheen 900ms ease-out 120ms 1 both;
+}
+
+.connection-finish > * {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: connection-finish-content-in 520ms ease-out forwards;
+}
+
+.connection-finish .connection-finish-title {
+  animation-delay: 120ms;
+}
+
+.connection-finish .connection-finish-text {
+  animation-delay: 190ms;
+}
+
+.connection-finish .connection-finish-btn {
+  animation-delay: 260ms;
 }
 
 .connection-finish--won {
@@ -187,7 +265,22 @@
 
 .connection-finish--lost {
   border-top-color: #b91c1c;
-  background: #fef2f2;
+  background: linear-gradient(135deg, #fff9f9 0%, #fef2f2 48%, #fee2e2 100%);
+}
+
+.connection-finish--lost::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    110% 90% at 12% 0%,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  opacity: 0;
+  animation: connection-finish-lost-glow 780ms ease-out 120ms forwards;
 }
 
 .connection-finish-title {
@@ -354,6 +447,79 @@
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes connection-tile-shimmer {
+  0% {
+    background-position: 140% 0;
+  }
+  100% {
+    background-position: -95% 0;
+  }
+}
+
+@keyframes connection-finish-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.002);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes connection-finish-content-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes connection-finish-sheen {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(140%);
+    opacity: 0;
+  }
+}
+
+@keyframes connection-finish-lost-glow {
+  0% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-finish,
+  .connection-finish > *,
+  .connection-finish::before,
+  .connection-finish--lost::after,
+  .connection-tile--skeleton {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
