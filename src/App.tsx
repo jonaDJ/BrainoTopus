@@ -34,16 +34,24 @@ const gameCards: GameCard[] = [
 function App() {
   const isWordlePage = window.location.pathname === "/games/wordle";
   const isConnectionPage = window.location.pathname === "/games/connection";
+  const activeGameTitle = isWordlePage
+    ? "Wordle"
+    : isConnectionPage
+      ? "Connections"
+      : null;
 
   return (
     <div className="nyt-shell">
       <RainLayer />
       <Navbar />
 
-      {isWordlePage ? (
-        <WORDLEGAME />
-      ) : isConnectionPage ? (
-        <CONNECTION />
+      {activeGameTitle ? (
+        <>
+          <section className="game-page-header">
+            <h1 className="game-page-title">{activeGameTitle}</h1>
+          </section>
+          {isWordlePage ? <WORDLEGAME /> : <CONNECTION />}
+        </>
       ) : (
         <main className="page-content">
           <section className="hero">
@@ -58,7 +66,7 @@ function App() {
           </section>
 
           <section className="games-section" id="games">
-            <h2>More Games</h2>
+            <h2>Games</h2>
 
             <div className="game-grid">
               {gameCards.map((game) =>
