@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import "./CONNECTION.css";
+import { GameFinishBanner } from "../../components/game-finish/GameFinishBanner";
 
 type GroupId = string;
 
@@ -133,6 +134,8 @@ export function CONNECTION() {
   const gridRef = useRef<HTMLElement | null>(null);
   const preReflowRectsRef = useRef<Record<string, DOMRect>>({});
   const shouldAnimateReflowRef = useRef(false);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+  const attemptedGuessKeysRef = useRef<Set<string>>(new Set());
   const [allPuzzles, setAllPuzzles] = useState<ApiPuzzle[]>([]);
   const [activePuzzleId, setActivePuzzleId] = useState<number | null>(null);
   const [groupOrder, setGroupOrder] = useState<GroupId[]>([]);
@@ -152,15 +155,41 @@ export function CONNECTION() {
   >({});
   const [shakeTileIds, setShakeTileIds] = useState<string[]>([]);
   const [mistakesRemaining, setMistakesRemaining] = useState(4);
+  const [roundFeedback, setRoundFeedback] = useState<string | null>(null);
+  const [roundOutcome, setRoundOutcome] = useState<"won" | "lost" | null>(null);
   const [isShuffling, setIsShuffling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAutoRevealing, setIsAutoRevealing] = useState(false);
-  const isGameOver = mistakesRemaining === 0;
-  const isGameWon =
-    !isGameOver && groupOrder.length > 0 && solvedGroups.length === groupOrder.length;
-  const isGameComplete = isGameOver || isGameWon;
+  const isGameWon = roundOutcome === "won";
+  const isGameComplete = roundOutcome !== null;
+
+  const clearRoundFeedback = useCallback(() => {
+    if (feedbackTimeoutRef.current !== null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
+    setRoundFeedback(null);
+  }, []);
+
+  const showRoundFeedback = useCallback(
+    (message: string) => {
+      if (feedbackTimeoutRef.current !== null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+      setRoundFeedback(message);
+      feedbackTimeoutRef.current = window.setTimeout(() => {
+        feedbackTimeoutRef.current = null;
+        setRoundFeedback(null);
+      }, 1800);
+    },
+    [],
+  );
 
   const resetRound = useCallback((tilesForRound: Tile[]) => {
+    if (feedbackTimeoutRef.current !== null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
     setTiles(shuffleTiles(tilesForRound));
     setSelectedTiles([]);
     setSolvedGroups([]);
@@ -168,11 +197,14 @@ export function CONNECTION() {
     setGatherByTile({});
     setShakeTileIds([]);
     setMistakesRemaining(4);
+    setRoundFeedback(null);
+    setRoundOutcome(null);
     setIsShuffling(false);
     setIsSubmitting(false);
     setIsAutoRevealing(false);
     shouldAnimateReflowRef.current = false;
     preReflowRectsRef.current = {};
+    attemptedGuessKeysRef.current = new Set();
   }, []);
 
   const applyPuzzle = useCallback(
@@ -212,6 +244,14 @@ export function CONNECTION() {
   useEffect(() => {
     void loadPuzzle();
   }, [loadPuzzle]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current !== null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!shouldAnimateReflowRef.current) {
@@ -265,6 +305,7 @@ export function CONNECTION() {
       return;
     }
 
+    clearRoundFeedback();
     setIsShuffling(true);
     window.setTimeout(() => {
       setTiles((current) => shuffleTiles(current));
@@ -279,6 +320,7 @@ export function CONNECTION() {
       return;
     }
 
+    clearRoundFeedback();
     setSelectedTiles((current) => {
       if (current.includes(tileId)) {
         return current.filter((item) => item !== tileId);
@@ -296,6 +338,7 @@ export function CONNECTION() {
     if (isLoadingPuzzle || puzzleLoadError || isSubmitting || isGameComplete) {
       return;
     }
+    clearRoundFeedback();
     setSelectedTiles([]);
   };
 
@@ -312,6 +355,14 @@ export function CONNECTION() {
     const nextPuzzle = chooseRandomPuzzleById(allPuzzles, activePuzzleId);
     applyPuzzle(nextPuzzle);
   };
+
+  const runWrongGuessShake = useCallback(async (selectedIds: string[]) => {
+    setShakeTileIds([]);
+    await waitForFrame();
+    setShakeTileIds(selectedIds);
+    await wait(420);
+    setShakeTileIds([]);
+  }, []);
 
   const animateSolveSelection = async (
     currentTiles: Tile[],
@@ -463,6 +514,12 @@ export function CONNECTION() {
       return;
     }
 
+    const guessKey = [...selectedTiles].sort().join("|");
+    if (attemptedGuessKeysRef.current.has(guessKey)) {
+      showRoundFeedback("Already guessed.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const selectedSet = new Set(selectedTiles);
@@ -471,24 +528,41 @@ export function CONNECTION() {
     );
     const isCorrect =
       new Set(selectedTileObjects.map((tile) => tile.groupId)).size === 1;
+    const groupCounts = selectedTileObjects.reduce<Record<GroupId, number>>(
+      (counts, tile) => {
+        counts[tile.groupId] = (counts[tile.groupId] ?? 0) + 1;
+        return counts;
+      },
+      {},
+    );
+    const isOneAway = Object.values(groupCounts).some((count) => count === 3);
 
     if (isCorrect) {
+      const completesRound =
+        groupOrder.length > 0 && solvedGroups.length + 1 === groupOrder.length;
+      clearRoundFeedback();
       await animateSolveSelection(tiles, selectedTiles, { noWave: true });
       setSelectedTiles([]);
+      if (completesRound) {
+        setRoundOutcome("won");
+      }
     } else {
+      attemptedGuessKeysRef.current.add(guessKey);
       const nextMistakesRemaining = Math.max(0, mistakesRemaining - 1);
       setMistakesRemaining(nextMistakesRemaining);
 
       if (nextMistakesRemaining === 0) {
+        clearRoundFeedback();
+        await runWrongGuessShake(selectedTiles);
         await revealRemainingGroupsAfterGameOver(tiles);
+        setRoundOutcome("lost");
       } else {
-        setShakeTileIds([]);
-        window.requestAnimationFrame(() => {
-          setShakeTileIds(selectedTiles);
-        });
-        window.setTimeout(() => {
-          setShakeTileIds([]);
-        }, 420);
+        if (isOneAway) {
+          showRoundFeedback("One away. You have 3 correct and 1 wrong.");
+        } else {
+          clearRoundFeedback();
+        }
+        void runWrongGuessShake(selectedTiles);
       }
     }
 
@@ -506,20 +580,16 @@ export function CONNECTION() {
           </p>
         ) : null}
         {puzzleLoadError ? (
-          <div aria-live="polite" className="connection-finish connection-finish--lost">
-            <h2 className="connection-finish-title">Unable to load puzzle</h2>
-            <p className="connection-finish-text">{puzzleLoadError}</p>
-            <button
-              aria-label="Retry loading puzzle"
-              className="connection-action-btn connection-finish-btn"
-              onClick={() => {
-                void loadPuzzle();
-              }}
-              type="button"
-            >
-              Try Again
-            </button>
-          </div>
+          <GameFinishBanner
+            actionAriaLabel="Retry loading puzzle"
+            actionLabel="Try Again"
+            onAction={() => {
+              void loadPuzzle();
+            }}
+            outcome="lost"
+            text={puzzleLoadError}
+            title="Unable to load puzzle"
+          />
         ) : null}
 
         {solvedGroups.length > 0 ? (
@@ -540,49 +610,57 @@ export function CONNECTION() {
           </section>
         ) : null}
 
-        <section
-          aria-label="Connections board"
-          className={`connection-grid ${isLoadingPuzzle ? "connection-grid--loading" : ""}`}
-          ref={gridRef}
-        >
-          {isLoadingPuzzle
-            ? Array.from({ length: LOADING_TILE_COUNT }).map((_, index) => (
-                <div
-                  aria-hidden="true"
-                  className="connection-tile connection-tile--skeleton"
-                  key={`skeleton-tile-${index}`}
-                />
-              ))
-            : tiles.map((tile) => {
-                const isSelected = selectedTiles.includes(tile.id);
-                const showSelectedState = isSelected && !isAutoRevealing;
-                const isLocked = selectedTiles.length >= 4 && !isSelected;
-                const waveDelay = waveDelayByTile[tile.id];
-                const gather = gatherByTile[tile.id];
+        <div className="connection-grid-wrap">
+          {roundFeedback ? (
+            <p aria-live="polite" className="connection-feedback" role="status">
+              {roundFeedback}
+            </p>
+          ) : null}
 
-                return (
-                  <button
-                    aria-pressed={isSelected}
-                    className={`connection-tile rain-proof ${showSelectedState ? "connection-tile--selected" : ""} ${waveDelay !== undefined ? "connection-tile--wave" : ""} ${shakeTileIds.includes(tile.id) ? "connection-tile--shake" : ""} ${gather ? "connection-tile--gather" : ""}`}
-                    data-tile-id={tile.id}
-                    disabled={isLocked || isSubmitting || isGameComplete}
-                    key={tile.id}
-                    onClick={() => handleTileClick(tile.id)}
-                    style={
-                      {
-                        "--wave-delay": `${waveDelay ?? 0}ms`,
-                        "--gather-delay": `${gather?.delay ?? 0}ms`,
-                        "--gather-x": `${gather?.x ?? 0}px`,
-                        "--gather-y": `${gather?.y ?? 0}px`,
-                      } as CSSProperties
-                    }
-                    type="button"
-                  >
-                    {tile.label}
-                  </button>
-                );
-              })}
-        </section>
+          <section
+            aria-label="Connections board"
+            className={`connection-grid ${isLoadingPuzzle ? "connection-grid--loading" : ""}`}
+            ref={gridRef}
+          >
+            {isLoadingPuzzle
+              ? Array.from({ length: LOADING_TILE_COUNT }).map((_, index) => (
+                  <div
+                    aria-hidden="true"
+                    className="connection-tile connection-tile--skeleton"
+                    key={`skeleton-tile-${index}`}
+                  />
+                ))
+              : tiles.map((tile) => {
+                  const isSelected = selectedTiles.includes(tile.id);
+                  const showSelectedState = isSelected && !isAutoRevealing;
+                  const isLocked = selectedTiles.length >= 4 && !isSelected;
+                  const waveDelay = waveDelayByTile[tile.id];
+                  const gather = gatherByTile[tile.id];
+
+                  return (
+                    <button
+                      aria-pressed={isSelected}
+                      className={`connection-tile rain-proof ${showSelectedState ? "connection-tile--selected" : ""} ${waveDelay !== undefined ? "connection-tile--wave" : ""} ${shakeTileIds.includes(tile.id) ? "connection-tile--shake" : ""} ${gather ? "connection-tile--gather" : ""}`}
+                      data-tile-id={tile.id}
+                      disabled={isLocked || isSubmitting || isGameComplete}
+                      key={tile.id}
+                      onClick={() => handleTileClick(tile.id)}
+                      style={
+                        {
+                          "--wave-delay": `${waveDelay ?? 0}ms`,
+                          "--gather-delay": `${gather?.delay ?? 0}ms`,
+                          "--gather-x": `${gather?.x ?? 0}px`,
+                          "--gather-y": `${gather?.y ?? 0}px`,
+                        } as CSSProperties
+                      }
+                      type="button"
+                    >
+                      {tile.label}
+                    </button>
+                  );
+                })}
+          </section>
+        </div>
 
         <div className="mistakes-wrap" role="status">
           <p className="mistakes-label">Mistakes Remaining:</p>
@@ -596,26 +674,18 @@ export function CONNECTION() {
           </div>
         </div>
         {isGameComplete ? (
-          <div
-            className={`connection-finish ${isGameWon ? "connection-finish--won" : "connection-finish--lost"}`}
-          >
-            <h2 className="connection-finish-title">
-              {isGameWon ? "All 4 groups solved" : "Round complete"}
-            </h2>
-            <p aria-live="polite" className="connection-finish-text" role="status">
-              {isGameWon
+          <GameFinishBanner
+            actionAriaLabel="Start a new puzzle"
+            actionLabel={isGameWon ? "Play Another Round" : "Try Another Puzzle"}
+            onAction={handleRetry}
+            outcome={isGameWon ? "won" : "lost"}
+            text={
+              isGameWon
                 ? "Great solve. Every group was correct."
-                : "No mistakes left. Review the solved groups above."}
-            </p>
-            <button
-              className="connection-action-btn connection-finish-btn"
-              aria-label="Start a new puzzle"
-              onClick={handleRetry}
-              type="button"
-            >
-              Play Another Round
-            </button>
-          </div>
+                : "No mistakes left. Review the solved groups above."
+            }
+            title={isGameWon ? "All 4 groups solved" : "Round complete"}
+          />
         ) : null}
 
         {!isGameComplete ? (

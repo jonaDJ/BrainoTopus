@@ -26,10 +26,18 @@ type ObstacleRect = {
   radius: number;
 };
 
-export function RainLayer() {
+type RainLayerProps = {
+  enabled?: boolean;
+};
+
+export function RainLayer({ enabled = true }: RainLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const prefersReducedMotion =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,17 +61,30 @@ export function RainLayer() {
     let rafId = 0;
     let lastTime = performance.now();
     let spawnAccumulator = 0;
-    let cloudDrift = 0;
     const streaks: RainDrop[] = [];
     const dots: RainDot[] = [];
-    const maxDrops = 220;
-    const spawnPerSecond = 125;
+    const baseMaxDrops = 220;
+    const baseSpawnPerSecond = 125;
+    const referenceWidth = 1280;
+    let maxDrops = baseMaxDrops;
+    let spawnPerSecond = baseSpawnPerSecond;
     const gravity = 1500;
+
+    const updateRainDensity = () => {
+      const widthScale = width / referenceWidth;
+      maxDrops = Math.max(40, Math.round(baseMaxDrops * widthScale));
+      spawnPerSecond = Math.max(24, baseSpawnPerSecond * widthScale);
+
+      if (streaks.length > maxDrops) {
+        streaks.splice(0, streaks.length - maxDrops);
+      }
+    };
 
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
       dpr = window.devicePixelRatio || 1;
+      updateRainDensity();
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
@@ -153,22 +174,6 @@ export function RainLayer() {
       });
     };
 
-    const drawCloudCover = () => {
-      const xShift = (cloudDrift % (width + 320)) - 320;
-      context.fillStyle = "rgba(71, 85, 105, 0.2)";
-
-      for (let i = 0; i < 5; i += 1) {
-        const baseX = xShift + i * (width / 2.9);
-        const baseY = -24 + (i % 2) * 16;
-
-        context.beginPath();
-        context.ellipse(baseX + 60, baseY + 26, 92, 34, 0, 0, Math.PI * 2);
-        context.ellipse(baseX + 138, baseY + 18, 108, 40, 0, 0, Math.PI * 2);
-        context.ellipse(baseX + 226, baseY + 29, 90, 33, 0, 0, Math.PI * 2);
-        context.fill();
-      }
-    };
-
     const tick = (time: number) => {
       const dt = Math.min((time - lastTime) / 1000, 0.033);
       lastTime = time;
@@ -182,8 +187,6 @@ export function RainLayer() {
       const obstacles = collectObstacles();
 
       context.clearRect(0, 0, width, height);
-      cloudDrift += dt * 12;
-      drawCloudCover();
       context.lineWidth = 1.4;
       context.lineCap = "round";
 
@@ -272,7 +275,11 @@ export function RainLayer() {
       window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) {
+    return null;
+  }
 
   return <canvas aria-hidden className="rain-layer" ref={canvasRef} />;
 }

@@ -1,19 +1,26 @@
 .wordlegame {
+  --word-tile-size: clamp(42px, 5.7vh, 48px);
+  --word-board-gap: 5px;
+  --word-key-height: clamp(40px, 5.1vh, 48px);
+  --word-key-min-width: clamp(30px, 4.1vh, 38px);
+  --word-key-wide-width: clamp(50px, 6.1vh, 60px);
+  --word-key-font-size: clamp(0.72rem, 1.8vh, 0.9rem);
+  --word-key-wide-font-size: clamp(0.58rem, 1.45vh, 0.72rem);
   position: relative;
   z-index: 10;
-  width: min(1120px, 100% - 2rem);
+  width: min(500px, 100% - 1rem);
   margin: 0 auto;
-  padding: 1rem 0 1.6rem;
+  padding: 0.55rem 0 1.1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.68rem;
+  gap: 0.48rem;
 }
 
 .word-board {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 0.42rem;
+  gap: var(--word-board-gap);
 }
 
 .word-board-wrap {
@@ -43,8 +50,8 @@
 .word-tile {
   display: grid;
   place-items: center;
-  width: clamp(2.55rem, 6.2vw, 3.5rem);
-  height: clamp(2.55rem, 6.2vw, 3.5rem);
+  width: var(--word-tile-size);
+  height: var(--word-tile-size);
   border: 1px solid rgb(255 255 255 / 45%);
   background:
     linear-gradient(145deg, rgb(255 255 255 / 55%), rgb(255 255 255 / 18%)),
@@ -54,7 +61,7 @@
     0 8px 18px rgb(15 23 42 / 10%);
   backdrop-filter: blur(6px);
   font-family: "Trebuchet MS", sans-serif;
-  font-size: clamp(1.2rem, 3vw, 1.75rem);
+  font-size: clamp(1.25rem, 2.8vh, 1.45rem);
   font-weight: 700;
   color: #1f2937;
   text-transform: uppercase;
@@ -102,27 +109,27 @@
 }
 
 .word-keyboard {
-  width: min(650px, 100%);
+  width: min(500px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 0.38rem;
+  gap: 0.3rem;
 }
 
 .key-row {
   display: flex;
   justify-content: center;
-  gap: 0.42rem;
+  gap: 0.28rem;
 }
 
 .key-button {
-  min-width: 2.45rem;
-  height: 2.85rem;
+  min-width: var(--word-key-min-width);
+  height: var(--word-key-height);
   border: 0;
   border-radius: 0.28rem;
   background: #252b33;
   color: #f8fafc;
   font-family: "Trebuchet MS", sans-serif;
-  font-size: 1.04rem;
+  font-size: var(--word-key-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -136,8 +143,8 @@
 }
 
 .key-button--wide {
-  min-width: 4.7rem;
-  font-size: 0.78rem;
+  min-width: var(--word-key-wide-width);
+  font-size: var(--word-key-wide-font-size);
 }
 
 .key-button--absent {
@@ -157,11 +164,11 @@
 
 .word-feedback {
   min-height: 1.35rem;
-  margin: 0.1rem 0 0;
+  margin: 0;
   font-family: "Trebuchet MS", sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #374151;
+  color: #d4deec;
 }
 
 .word-postgame-actions {
@@ -178,8 +185,9 @@
 }
 
 .word-action-btn--primary {
-  background: #0f172a;
-  color: #f8fafc;
+  background: #f3f7ff;
+  color: #08111c;
+  box-shadow: 0 10px 24px rgb(2 6 23 / 26%);
 }
 
 @keyframes word-tile-pop {
@@ -255,26 +263,51 @@
 
 @media (max-width: 720px) {
   .wordlegame {
-    padding-top: 1.15rem;
+    --word-tile-size: 44px;
+    --word-board-gap: 5px;
+    --word-key-height: 42px;
+    --word-key-min-width: 30px;
+    --word-key-wide-width: 48px;
+    --word-key-font-size: 0.75rem;
+    --word-key-wide-font-size: 0.56rem;
+    padding-top: 0.6rem;
   }
 
   .word-board {
-    gap: 0.42rem;
+    gap: var(--word-board-gap);
   }
 
   .key-row {
-    gap: 0.32rem;
+    gap: 0.28rem;
   }
 
   .key-button {
-    min-width: 2.1rem;
-    height: 2.9rem;
-    font-size: 0.95rem;
     padding: 0;
   }
+}
 
-  .key-button--wide {
-    min-width: 3.8rem;
-    font-size: 0.65rem;
+@media (max-width: 420px) {
+  .wordlegame {
+    --word-tile-size: 38px;
+    --word-board-gap: 4px;
+    --word-key-height: 37px;
+    --word-key-min-width: 24px;
+    --word-key-wide-width: 40px;
+    --word-key-font-size: 0.66rem;
+    --word-key-wide-font-size: 0.52rem;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 721px) {
+  .wordlegame {
+    --word-tile-size: 42px;
+    --word-board-gap: 4px;
+    --word-key-height: 40px;
+    --word-key-min-width: 30px;
+    --word-key-wide-width: 48px;
+    --word-key-font-size: 0.74rem;
+    --word-key-wide-font-size: 0.56rem;
+    padding-top: 0.35rem;
+    gap: 0.4rem;
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./WORDLEGAME.css";
+import { GameFinishBanner } from "../../components/game-finish/GameFinishBanner";
 
 const BOARD_ROWS = 6;
 const BOARD_COLS = 5;
@@ -36,6 +37,7 @@ export function WORDLEGAME() {
   const [topAlert, setTopAlert] = useState("");
   const [isCheckingGuess, setIsCheckingGuess] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [roundOutcome, setRoundOutcome] = useState<"won" | "lost" | null>(null);
   const [keyStates, setKeyStates] = useState<Record<string, KeyState>>({});
   const [shakeRowIndex, setShakeRowIndex] = useState<number | null>(null);
   const [entryPulse, setEntryPulse] = useState<EntryPulse>(null);
@@ -108,6 +110,7 @@ export function WORDLEGAME() {
     setFeedback("");
     setTopAlert("");
     setIsGameOver(false);
+    setRoundOutcome(null);
     setKeyStates({});
     setShakeRowIndex(null);
     setEntryPulse(null);
@@ -232,7 +235,9 @@ export function WORDLEGAME() {
           const isWinningRow = rowResult.every((state) => state === "correct");
           if (isWinningRow) {
             setIsGameOver(true);
+            setRoundOutcome("won");
             setFeedback("You solved it.");
+            setTopAlert("You solved it!");
             return;
           }
 
@@ -241,7 +246,9 @@ export function WORDLEGAME() {
             setCurrentCol(0);
           } else {
             setIsGameOver(true);
+            setRoundOutcome("lost");
             setFeedback(`The word was ${targetWordRef.current}.`);
+            setTopAlert(`The word was ${targetWordRef.current}.`);
           }
         } catch {
           setFeedback("Could not validate word.");
@@ -402,52 +409,55 @@ export function WORDLEGAME() {
         </section>
       </div>
 
-      <section aria-label="Keyboard" className="word-keyboard">
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
-          <div className="key-row" key={rowIndex}>
-            {row.map((key) => {
-              const keyState = keyStates[key];
-              const keyStateClass =
-                keyState === "correct"
-                  ? "key-button--correct"
-                  : keyState === "present"
-                    ? "key-button--present"
-                    : keyState === "absent"
-                      ? "key-button--absent"
-                      : "";
+      {isGameOver && roundOutcome ? (
+        <GameFinishBanner
+          actionLabel="Play Again"
+          onAction={() => {
+            void resetGame();
+          }}
+          outcome={roundOutcome}
+          text={feedback}
+          title={roundOutcome === "won" ? "Puzzle solved" : "Round complete"}
+        />
+      ) : null}
 
-              return (
-                <button
-                  className={
-                    `${key === "ENTER" || key === "BACK" ? "key-button key-button--wide" : "key-button"} ${keyStateClass}`
-                  }
-                  key={key}
-                  disabled={isGameOver}
-                  onClick={() => void applyKey(key)}
-                  type="button"
-                >
-                  {key === "BACK" ? "DEL" : key}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </section>
+      {!isGameOver ? (
+        <section aria-label="Keyboard" className="word-keyboard">
+          {KEYBOARD_ROWS.map((row, rowIndex) => (
+            <div className="key-row" key={rowIndex}>
+              {row.map((key) => {
+                const keyState = keyStates[key];
+                const keyStateClass =
+                  keyState === "correct"
+                    ? "key-button--correct"
+                    : keyState === "present"
+                      ? "key-button--present"
+                      : keyState === "absent"
+                        ? "key-button--absent"
+                        : "";
 
-      <p className="word-feedback" role="status">
-        {feedback}
-      </p>
+                return (
+                  <button
+                    className={
+                      `${key === "ENTER" || key === "BACK" ? "key-button key-button--wide" : "key-button"} ${keyStateClass}`
+                    }
+                    key={key}
+                    onClick={() => void applyKey(key)}
+                    type="button"
+                  >
+                    {key === "BACK" ? "DEL" : key}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </section>
+      ) : null}
 
-      {isGameOver ? (
-        <div className="word-postgame-actions">
-          <button
-            className="word-action-btn word-action-btn--primary"
-            onClick={() => void resetGame()}
-            type="button"
-          >
-            Play Again
-          </button>
-        </div>
+      {!isGameOver ? (
+        <p className="word-feedback" role="status">
+          {feedback}
+        </p>
       ) : null}
     </main>
   );

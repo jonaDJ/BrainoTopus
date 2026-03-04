@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import { RainLayer } from "./effects/rain/RainLayer";
 import { Navbar } from "./components/navbar/Navbar";
 import { WORDLEGAME } from "./pages/WORDLEGAME/WORDLEGAME";
 import { CONNECTION } from "./pages/CONNECTION/CONNECTION";
+import { ABOUT } from "./pages/ABOUT/ABOUT";
+import { CONTACT } from "./pages/CONTACT/CONTACT";
 import wordleCardImage from "./assets/images/wordle.svg";
 import connectionsCardImage from "./assets/images/connection.svg";
+
+const RAIN_ENABLED_STORAGE_KEY = "brainotopus-rain-enabled";
 
 type GameCard = {
   title: string;
@@ -29,21 +34,57 @@ const gameCards: GameCard[] = [
     title: "Mini Crossword",
     status: "developing",
   },
+  {
+    title: "Spelling Bee",
+    status: "developing",
+  },
+  {
+    title: "Sudoku",
+    status: "developing",
+  },
 ];
 
+function getInitialRainEnabled() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  try {
+    return window.localStorage.getItem(RAIN_ENABLED_STORAGE_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
 function App() {
-  const isWordlePage = window.location.pathname === "/games/wordle";
-  const isConnectionPage = window.location.pathname === "/games/connection";
+  const [isRainEnabled, setIsRainEnabled] = useState(getInitialRainEnabled);
+  const pathname = window.location.pathname;
+  const isWordlePage = pathname === "/games/wordle";
+  const isConnectionPage = pathname === "/games/connection";
   const activeGameTitle = isWordlePage
     ? "Wordle"
     : isConnectionPage
       ? "Connections"
       : null;
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        RAIN_ENABLED_STORAGE_KEY,
+        isRainEnabled ? "1" : "0",
+      );
+    } catch {
+      // Ignore storage write failures so the toggle still works in-memory.
+    }
+  }, [isRainEnabled]);
+
   return (
     <div className="nyt-shell">
-      <RainLayer />
-      <Navbar />
+      <RainLayer enabled={isRainEnabled} />
+      <Navbar
+        isRainEnabled={isRainEnabled}
+        onToggleRain={() => setIsRainEnabled((prev) => !prev)}
+      />
 
       {activeGameTitle ? (
         <>
@@ -58,7 +99,7 @@ function App() {
             <div className="hero-copy">
               <p className="hero-kicker rain-proof">NYT-style Puzzle Hub</p>
               <h1>Be Dumb. Be Octopus.</h1>
-              <p>
+              <p className="hero-summary">
                 BrainoTopus is built for fast daily puzzle loops. Wordle is
                 live, and new modes are on deck.
               </p>
@@ -112,12 +153,24 @@ function App() {
               )}
             </div>
           </section>
+
+          <ABOUT />
+          <CONTACT />
         </main>
       )}
 
       <footer className="site-footer">
-        <p id="about">Daily puzzle energy with octopus chaos.</p>
-        <p id="contact">Contact: hello@brainotopus.dev</p>
+        <nav aria-label="Footer navigation" className="site-footer-links">
+          <a href="/#about">About</a>
+          <a href="/#contact">Contact</a>
+          <a
+            href="https://github.com/jonaDJ/BrainoTopus"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Contribute
+          </a>
+        </nav>
       </footer>
     </div>
   );
